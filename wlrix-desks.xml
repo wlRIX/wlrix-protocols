@@ -26,7 +26,7 @@
     the Overview draws as opaque rectangles and no standard protocol provides.
   </description>
 
-  <interface name="wlrix_desks_manager_v1" version="1">
+  <interface name="wlrix_desks_manager_v1" version="2">
     <description summary="enumerate and manage desks and windows">
       The manager is the entry point. On bind the compositor advertises every desk (a
       wlrix_desk_v1) and every window (a wlrix_toplevel_v1), each followed by its property
@@ -63,7 +63,7 @@
     <event name="toplevel">
       <description summary="a window exists">
         Introduces a window. The compositor immediately follows this with the window's
-        property events (app_id, title, geometry, state, desk).
+        property events (app_id, title, geometry, state, desk, and from version 2 stacking).
       </description>
       <arg name="toplevel" type="new_id" interface="wlrix_toplevel_v1"/>
     </event>
@@ -83,7 +83,7 @@
     </event>
   </interface>
 
-  <interface name="wlrix_desk_v1" version="1">
+  <interface name="wlrix_desk_v1" version="2">
     <description summary="a single desk">
       One desk. Property events (id, name, global, activated/deactivated) arrive after the
       manager's desk event and whenever they change, each batch ended by the manager's done.
@@ -149,7 +149,7 @@
     </request>
   </interface>
 
-  <interface name="wlrix_toplevel_v1" version="1">
+  <interface name="wlrix_toplevel_v1" version="2">
     <description summary="a single window">
       One window on some desk. Property events arrive after the manager's toplevel event and
       whenever they change; geometry in particular is emitted live as the window moves or
@@ -203,6 +203,25 @@
     <event name="desk">
       <description summary="the desk this window is on"/>
       <arg name="desk" type="object" interface="wlrix_desk_v1"/>
+    </event>
+
+    <event name="stacking" since="2">
+      <description summary="where the window sits in the stacking order">
+        The window's place in the stacking order, counted from the back: a window with a
+        higher position is drawn over one with a lower position wherever the two overlap.
+        Positions are comparable between any two windows, but are not contiguous within a
+        desk and carry no meaning beyond their order.
+
+        The order is the one the user sees: minimized windows' icons, which sit behind every
+        window, come first; then the windows on screen, back to front; then the windows on
+        inactive desks, in the order their desk will show them, which is above the global
+        desk's windows.
+
+        Sent right after the window is introduced and again whenever its position changes --
+        which, because positions are shared, includes when another window is raised or
+        lowered past it. Each batch is ended by the manager's done.
+      </description>
+      <arg name="position" type="uint"/>
     </event>
 
     <event name="closed">
