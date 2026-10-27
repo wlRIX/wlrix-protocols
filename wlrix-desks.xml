@@ -26,7 +26,7 @@
     the Overview draws as opaque rectangles and no standard protocol provides.
   </description>
 
-  <interface name="wlrix_desks_manager_v1" version="2">
+  <interface name="wlrix_desks_manager_v1" version="3">
     <description summary="enumerate and manage desks and windows">
       The manager is the entry point. On bind the compositor advertises every desk (a
       wlrix_desk_v1) and every window (a wlrix_toplevel_v1), each followed by its property
@@ -83,7 +83,7 @@
     </event>
   </interface>
 
-  <interface name="wlrix_desk_v1" version="2">
+  <interface name="wlrix_desk_v1" version="3">
     <description summary="a single desk">
       One desk. Property events (id, name, global, activated/deactivated) arrive after the
       manager's desk event and whenever they change, each batch ended by the manager's done.
@@ -149,7 +149,7 @@
     </request>
   </interface>
 
-  <interface name="wlrix_toplevel_v1" version="2">
+  <interface name="wlrix_toplevel_v1" version="3">
     <description summary="a single window">
       One window on some desk. Property events arrive after the manager's toplevel event and
       whenever they change; geometry in particular is emitted live as the window moves or
@@ -184,7 +184,8 @@
         apart.
 
         A window that is neither on screen nor represented by an icon -- one on an inactive
-        desk -- keeps the geometry last sent for it, which is where it will reappear.
+        desk -- is reported where it will reappear: where it was last on screen, or where the
+        place request last put it.
       </description>
       <arg name="x" type="int"/>
       <arg name="y" type="int"/>
@@ -258,6 +259,22 @@
     <request name="move_to_desk">
       <description summary="move the window to another desk"/>
       <arg name="desk" type="object" interface="wlrix_desk_v1"/>
+    </request>
+
+    <request name="place" since="3">
+      <description summary="move the window to a desk, at a position">
+        Move the window to desk with its top-left corner at x, y in the global layout -- the
+        same point the geometry event reports. desk may be the one the window is already on,
+        which only moves it there; on an inactive desk the position is where the window will
+        appear when its desk is next activated. Placing a window does not focus it, nor raise it
+        on the desk it is already on.
+
+        The position is ignored while the window is minimized, maximized or fullscreen,
+        whose geometry is not theirs to set: such a window only changes desks.
+      </description>
+      <arg name="desk" type="object" interface="wlrix_desk_v1"/>
+      <arg name="x" type="int"/>
+      <arg name="y" type="int"/>
     </request>
 
     <request name="destroy" type="destructor">
