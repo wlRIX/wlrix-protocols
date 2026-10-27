@@ -26,7 +26,7 @@
     the Overview draws as opaque rectangles and no standard protocol provides.
   </description>
 
-  <interface name="wlrix_desks_manager_v1" version="3">
+  <interface name="wlrix_desks_manager_v1" version="4">
     <description summary="enumerate and manage desks and windows">
       The manager is the entry point. On bind the compositor advertises every desk (a
       wlrix_desk_v1) and every window (a wlrix_toplevel_v1), each followed by its property
@@ -54,8 +54,8 @@
     <event name="desk">
       <description summary="a desk exists">
         Introduces a desk. The compositor immediately follows this with the desk's property
-        events (name, and global for the global desk) and, when it is the active desk, an
-        activated event.
+        events (name, and global for the global desk; from version 4 background or
+        shared_background) and, when it is the active desk, an activated event.
       </description>
       <arg name="desk" type="new_id" interface="wlrix_desk_v1"/>
     </event>
@@ -83,7 +83,7 @@
     </event>
   </interface>
 
-  <interface name="wlrix_desk_v1" version="3">
+  <interface name="wlrix_desk_v1" version="4">
     <description summary="a single desk">
       One desk. Property events (id, name, global, activated/deactivated) arrive after the
       manager's desk event and whenever they change, each batch ended by the manager's done.
@@ -117,6 +117,32 @@
       <description summary="the desk is no longer active"/>
     </event>
 
+    <event name="background" since="4">
+      <description summary="the desk's own background">
+        The desk has a background of its own. While it is the active desk the desktop shows
+        this on every monitor, in place of the shared background that background.toml
+        describes.
+
+        image is the path of a picture, or empty for the color alone; mode is how it is
+        fitted, one of wlrix-bg's: tile, center, fit, fill, stretch or solid; color is
+        "#rrggbb". The compositor keeps and relays these values and never opens the file, so
+        a path that does not resolve is for the client drawing it to fall back from.
+
+        Sent after the desk is introduced and whenever the background changes. Never sent
+        for the global desk, which is not a desktop of its own.
+      </description>
+      <arg name="image" type="string"/>
+      <arg name="mode" type="string"/>
+      <arg name="color" type="string"/>
+    </event>
+
+    <event name="shared_background" since="4">
+      <description summary="the desk shows the shared background">
+        The desk has no background of its own, and shows the shared one. Sent after the desk
+        is introduced and whenever its own background is cleared.
+      </description>
+    </event>
+
     <event name="removed">
       <description summary="the desk was deleted">
         The desk no longer exists. The client should destroy this object; no further events
@@ -142,6 +168,23 @@
       </description>
     </request>
 
+    <request name="set_background" since="4">
+      <description summary="give this desk a background of its own">
+        Set the desk's own background, with the meaning the background event gives each
+        argument. It is kept with the desk across sessions. Ignored for the global desk, and
+        when mode is not one of the six or color is not "#rgb" or "#rrggbb".
+      </description>
+      <arg name="image" type="string"/>
+      <arg name="mode" type="string"/>
+      <arg name="color" type="string"/>
+    </request>
+
+    <request name="clear_background" since="4">
+      <description summary="go back to the shared background">
+        Forget the desk's own background, so it shows the shared one.
+      </description>
+    </request>
+
     <request name="destroy" type="destructor">
       <description summary="destroy this object">
         Stop receiving events for this desk. Does not delete the desk; use remove for that.
@@ -149,7 +192,7 @@
     </request>
   </interface>
 
-  <interface name="wlrix_toplevel_v1" version="3">
+  <interface name="wlrix_toplevel_v1" version="4">
     <description summary="a single window">
       One window on some desk. Property events arrive after the manager's toplevel event and
       whenever they change; geometry in particular is emitted live as the window moves or
